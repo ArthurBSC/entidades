@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NURA — Diagrama de Entidades</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .domain {
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .domain-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .entity {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.2s;
+  }
+  .entity:hover { border-color: rgba(255,255,255,0.2); }
+  .entity-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .entity-name svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+    transition: transform 0.2s;
+  }
+  .entity-name.open svg { transform: rotate(90deg); }
+  .fields {
+    display: none;
+    padding: 0 10px 8px;
+  }
+  .fields.visible { display: block; }
+  .field {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    padding: 2px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .field:last-child { border: none; }
+  .field-name { color: #cbd5e1; }
+  .field-type { color: #64748b; font-size: 0.65rem; font-family: monospace; }
+  .field-pk { color: #fbbf24; }
+  .field-fk { color: #60a5fa; }
+  .field-enum { color: #a78bfa; }
+  .relations {
+    padding: 6px 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .rel-tag {
+    display: inline-block;
+    font-size: 0.63rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin: 2px 2px 2px 0;
+    background: rgba(255,255,255,0.06);
+    color: #94a3b8;
+  }
+
+  /* Domain colors */
+  .auth     { background: rgba(239,68,68,0.06);   border-color: rgba(239,68,68,0.2); }
+  .auth .domain-title { color: #f87171; }
+  .auth .entity-name { background: rgba(239,68,68,0.08); color: #fca5a5; }
+
+  .org      { background: rgba(251,146,60,0.06);  border-color: rgba(251,146,60,0.2); }
+  .org .domain-title { color: #fb923c; }
+  .org .entity-name { background: rgba(251,146,60,0.08); color: #fdba74; }
+
+  .acad     { background: rgba(34,197,94,0.06);   border-color: rgba(34,197,94,0.2); }
+  .acad .domain-title { color: #4ade80; }
+  .acad .entity-name { background: rgba(34,197,94,0.08); color: #86efac; }
+
+  .mat      { background: rgba(16,185,129,0.06);  border-color: rgba(16,185,129,0.2); }
+  .mat .domain-title { color: #34d399; }
+  .mat .entity-name { background: rgba(16,185,129,0.08); color: #6ee7b7; }
+
+  .ps       { background: rgba(6,182,212,0.06);   border-color: rgba(6,182,212,0.2); }
+  .ps .domain-title { color: #22d3ee; }
+  .ps .entity-name { background: rgba(6,182,212,0.08); color: #67e8f9; }
+
+  .pessoa   { background: rgba(99,102,241,0.06);  border-color: rgba(99,102,241,0.2); }
+  .pessoa .domain-title { color: #818cf8; }
+  .pessoa .entity-name { background: rgba(99,102,241,0.08); color: #a5b4fc; }
+
+  .tcc      { background: rgba(168,85,247,0.06);  border-color: rgba(168,85,247,0.2); }
+  .tcc .domain-title { color: #c084fc; }
+  .tcc .entity-name { background: rgba(168,85,247,0.08); color: #d8b4fe; }
+
+  .est      { background: rgba(236,72,153,0.06);  border-color: rgba(236,72,153,0.2); }
+  .est .domain-title { color: #f472b6; }
+  .est .entity-name { background: rgba(236,72,153,0.08); color: #f9a8d4; }
+
+  .bib      { background: rgba(245,158,11,0.06);  border-color: rgba(245,158,11,0.2); }
+  .bib .domain-title { color: #fbbf24; }
+  .bib .entity-name { background: rgba(245,158,11,0.08); color: #fcd34d; }
+
+  .pesq     { background: rgba(59,130,246,0.06);  border-color: rgba(59,130,246,0.2); }
+  .pesq .domain-title { color: #60a5fa; }
+  .pesq .entity-name { background: rgba(59,130,246,0.08); color: #93c5fd; }
+
+  .ext      { background: rgba(20,184,166,0.06);  border-color: rgba(20,184,166,0.2); }
+  .ext .domain-title { color: #2dd4bf; }
+  .ext .entity-name { background: rgba(20,184,166,0.08); color: #5eead4; }
+
+  .fin      { background: rgba(132,204,22,0.06);  border-color: rgba(132,204,22,0.2); }
+  .fin .domain-title { color: #a3e635; }
+  .fin .entity-name { background: rgba(132,204,22,0.08); color: #bef264; }
+
+  .coord    { background: rgba(251,191,36,0.06);  border-color: rgba(251,191,36,0.2); }
+  .coord .domain-title { color: #fcd34d; }
+  .coord .entity-name { background: rgba(251,191,36,0.08); color: #fde68a; }
+
+  .cal      { background: rgba(156,163,175,0.06); border-color: rgba(156,163,175,0.2); }
+  .cal .domain-title { color: #d1d5db; }
+  .cal .entity-name { background: rgba(156,163,175,0.08); color: #e5e7eb; }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 20px;
+  }
+  .stat-num { font-size: 1.5rem; font-weight: 700; color: #fff; }
+  .stat-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<h1>NURA — Mapa de Entidades do Sistema</h1>
+<p class="subtitle">Plataforma educacional multi-tenant · NestJS + Prisma + PostgreSQL · 70+ entidades</p>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num">70+</div><div class="stat-label">Entidades</div></div>
+  <div class="stat"><div class="stat-num">32</div><div class="stat-label">Módulos</div></div>
+  <div class="stat"><div class="stat-num">14</div><div class="stat-label">Domínios</div></div>
+  <div class="stat"><div class="stat-num">18</div><div class="stat-label">Enums</div></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div>Autenticação</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>Organização</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div>Acadêmico</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Matrícula</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div>Processo Seletivo</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#818cf8"></div>Pessoas</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>TCC</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>Estágio</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>Biblioteca</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>Pesquisa</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div>Extensão</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a3e635"></div>Financeiro</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fcd34d"></div>Coordenação</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d1d5db"></div>Calendário</div>
+</div>
+
+<div class="grid">
+
+<!-- AUTENTICAÇÃO -->
+<div class="domain auth">
+  <div class="domain-title">🔐 Autenticação e Acesso</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Usuario
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name">email</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name">senha</span><span class="field-type">String hash</span></div>
+      <div class="field"><span class="field-name">nome / sobrenome</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">cpf</span><span class="field-type">String unique?</span></div>
+      <div class="field"><span class="field-name">avatarUrl</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">emailVerificado</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">ativo</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">ultimoLogin</span><span class="field-type">DateTime?</span></div>
+      <div class="field"><span class="field-name">tentativasLoginFalhas</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">bloqueadoAte</span><span class="field-type">DateTime?</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ RefreshToken[]</span>
+      <span class="rel-tag">→ PasswordResetToken[]</span>
+      <span class="rel-tag">→ Sessao[]</span>
+      <span class="rel-tag">→ UsuarioOrganizacao[]</span>
+      <span class="rel-tag">→ Matricula</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      UsuarioOrganizacao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">papel</span><span class="field-type">PapelUsuario</span></div>
+      <div class="field"><span class="field-name">ativo</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">mascotes</span><span class="field-type">Json?</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      RefreshToken
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name">token</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name field-fk">usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">expiraEm</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">revogado</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">ipAddress / userAgent</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Sessao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">ipAddress / userAgent</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">inicioEm / ultimaAtividade</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">ativa</span><span class="field-type">Boolean</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      PasswordResetToken
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name">token</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name field-fk">usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">expiraEm</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">usado</span><span class="field-type">Boolean</span></div>
+    </div>
+  </div>
+
+  <!-- Enum box -->
+  <div style="background:rgba(248,113,113,0.06);border:1px dashed rgba(248,113,113,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#fca5a5;margin-top:6px;">
+    <strong>PapelUsuario</strong><br>
+    <span style="color:#94a3b8">SUPER_ADMIN · ADMIN · COORDENADOR · SECRETARIA · FINANCEIRO · RH · PROFESSOR · BIBLIOTECARIO · PORTEIRO · OUVIDORIA · ASSESSORIA_ACADEMICA · ALUNO · RESPONSAVEL · EGRESSO · CANDIDATO_PS</span>
+  </div>
+</div>
+
+<!-- ORGANIZAÇÃO -->
+<div class="domain org">
+  <div class="domain-title">🏛️ Organização</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Organizacao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name">nome / slug</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">cnpj</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name">email / telefone</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">endereco / cidade / uf / cep</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">logoUrl / corPrimaria / corSecundaria</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusRegistro</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoOrganizacao</span></div>
+      <div class="field"><span class="field-name">limiteUsuarios</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">modulosAtivos</span><span class="field-type">String[]</span></div>
+      <div class="field"><span class="field-name">Branding Login/Sidebar</span><span class="field-type">15+ campos</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Curso[]</span>
+      <span class="rel-tag">→ UsuarioOrganizacao[]</span>
+      <span class="rel-tag">→ Livro[]</span>
+      <span class="rel-tag">→ SemestreLetivo[]</span>
+      <span class="rel-tag">→ ProjetoPesquisa[]</span>
+      <span class="rel-tag">→ ProjetoExtensao[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      LogAuditoria
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">usuarioId / organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">acao / modulo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">severidade</span><span class="field-type">TipoSeveridade</span></div>
+      <div class="field"><span class="field-name">detalhes</span><span class="field-type">Json?</span></div>
+      <div class="field"><span class="field-name">ip / userAgent</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(251,146,60,0.06);border:1px dashed rgba(251,146,60,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#fdba74;margin-top:6px;">
+    <strong>TipoOrganizacao</strong>: FACULDADE · UNIVERSIDADE · ESCOLA · EMPRESA · OUTRO<br>
+    <strong>TipoSeveridade</strong>: INFO · AVISO · CRITICO · ERRO
+  </div>
+</div>
+
+<!-- ACADÊMICO -->
+<div class="domain acad">
+  <div class="domain-title">📚 Estrutura Acadêmica</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Curso
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nome / sigla / codigoMec</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">modalidade</span><span class="field-type">ModalidadeCurso</span></div>
+      <div class="field"><span class="field-name field-enum">grau</span><span class="field-type">GrauAcademico</span></div>
+      <div class="field"><span class="field-name">cargaHorariaTotal / duracaoSemestres</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name field-fk">coordenadorId</span><span class="field-type">UUID FK?</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Disciplina[]</span>
+      <span class="rel-tag">→ Turma[]</span>
+      <span class="rel-tag">→ Matricula[]</span>
+      <span class="rel-tag">→ GradeCurricular[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Disciplina
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">codigo / nome</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">ementa</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">cargaHoraria / creditos</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoDisciplina</span></div>
+      <div class="field"><span class="field-name">preRequisitos / coRequisitos</span><span class="field-type">String[]</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Turma[]</span>
+      <span class="rel-tag">→ GradeCurricularItem[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      GradeCurricular
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nome / anoInicio</span><span class="field-type">String / Int</span></div>
+      <div class="field"><span class="field-name">vigente</span><span class="field-type">Boolean</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ GradeCurricularItem[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      GradeCurricularItem
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">gradeId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">disciplinaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">semestre</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">obrigatoria</span><span class="field-type">Boolean</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Turma
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">disciplinaId / cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">semestreLetivoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">professorId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">codigo / vagas</span><span class="field-type">String / Int</span></div>
+      <div class="field"><span class="field-name">horario / sala</span><span class="field-type">String?</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Aula[]</span>
+      <span class="rel-tag">→ MatriculaDisciplina[]</span>
+      <span class="rel-tag">→ HorarioAula[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Aula
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">turmaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">data</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">conteudo / observacoes</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Sala
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nome / bloco / andar</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoSala</span></div>
+      <div class="field"><span class="field-name">capacidade</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">recursos</span><span class="field-type">String[]</span></div>
+      <div class="field"><span class="field-name">climatizada / acessivel</span><span class="field-type">Boolean</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ HorarioAula[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      HorarioAula
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">turmaId / salaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">diaSemana</span><span class="field-type">DiaSemana</span></div>
+      <div class="field"><span class="field-name">horaInicio / horaFim</span><span class="field-type">String</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(34,197,94,0.06);border:1px dashed rgba(34,197,94,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#86efac;margin-top:6px;">
+    <strong>ModalidadeCurso</strong>: PRESENCIAL · EAD · HIBRIDO<br>
+    <strong>GrauAcademico</strong>: BACHARELADO · LICENCIATURA · TECNOLOGIA · POS_GRADUACAO · MESTRADO · DOUTORADO<br>
+    <strong>TipoSala</strong>: SALA_AULA · LABORATORIO · AUDITORIO · SALA_REUNIAO · BIBLIOTECA · QUADRA · OUTRO<br>
+    <strong>DiaSemana</strong>: SEGUNDA a DOMINGO
+  </div>
+</div>
+
+<!-- MATRÍCULA -->
+<div class="domain mat">
+  <div class="domain-title">📋 Matrícula e Notas</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      SemestreLetivo
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nome / ano / semestre</span><span class="field-type">String / Int</span></div>
+      <div class="field"><span class="field-name">dataInicio / dataFim</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">inicioMatriculas / fimMatriculas</span><span class="field-type">DateTime?</span></div>
+      <div class="field"><span class="field-name">ativo</span><span class="field-type">Boolean</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ Turma[]</span><span class="rel-tag">→ EventoAcademico[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Matricula
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">pessoaId / cursoId / organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">numeroMatricula</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name">dataMatricula / semestreIngresso</span><span class="field-type">DateTime / String</span></div>
+      <div class="field"><span class="field-name field-enum">situacao</span><span class="field-type">SituacaoMatricula</span></div>
+      <div class="field"><span class="field-name field-enum">formaIngresso</span><span class="field-type">FormaIngresso</span></div>
+      <div class="field"><span class="field-name">cr</span><span class="field-type">Float?</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ MatriculaDisciplina[]</span>
+      <span class="rel-tag">→ HistoricoGerado[]</span>
+      <span class="rel-tag">→ Transferencia[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      MatriculaDisciplina
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">matriculaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">turmaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">situacao</span><span class="field-type">SituacaoDisciplina</span></div>
+      <div class="field"><span class="field-name">nota1 / nota2 / nota3</span><span class="field-type">Float?</span></div>
+      <div class="field"><span class="field-name">notaFinal / mediaFinal</span><span class="field-type">Float?</span></div>
+      <div class="field"><span class="field-name">frequencia / faltas</span><span class="field-type">Float / Int</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Transferencia
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">matriculaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoTransferencia</span></div>
+      <div class="field"><span class="field-name field-fk">cursoOrigemId / cursoDestinoId</span><span class="field-type">UUID FK?</span></div>
+      <div class="field"><span class="field-name">instituicaoOrigem / instituicaoDestino</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">motivo / parecer</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name field-enum">situacao</span><span class="field-type">SituacaoTransferencia</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      PadraoNota
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nome / mediaMinima / frequenciaMinima</span><span class="field-type">String / Float</span></div>
+      <div class="field"><span class="field-name">formulaMedia</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">arredondamento / casasDecimais</span><span class="field-type">Boolean / Int</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(16,185,129,0.06);border:1px dashed rgba(16,185,129,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#6ee7b7;margin-top:6px;">
+    <strong>SituacaoMatricula</strong>: ATIVA · TRANCADA · CANCELADA · CONCLUIDA · JUBILADA · TRANSFERIDA<br>
+    <strong>SituacaoDisciplina</strong>: CURSANDO · APROVADO · REPROVADO_NOTA · REPROVADO_FALTA · TRANCADO · DISPENSADO · APROVEITADO
+  </div>
+</div>
+
+<!-- PROCESSO SELETIVO -->
+<div class="domain ps">
+  <div class="domain-title">🎯 Processo Seletivo</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Edital
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / descricao</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoProcesso</span></div>
+      <div class="field"><span class="field-name">ano / semestre</span><span class="field-type">Int / String</span></div>
+      <div class="field"><span class="field-name">totalVagas / taxaInscricao</span><span class="field-type">Int / Float</span></div>
+      <div class="field"><span class="field-name">dataInicio / dataFim / dataProva</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusEdital</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ InscricaoPS[]</span>
+      <span class="rel-tag">→ ProvaVestibular[]</span>
+      <span class="rel-tag">→ ResultadoPS[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      InscricaoPS
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">editalId / candidatoId / cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">opcao</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">notaEnem / notaRedacao</span><span class="field-type">Float?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusInscricao</span></div>
+      <div class="field"><span class="field-name">comprovantePagamento</span><span class="field-type">String?</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ ResultadoPS</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ResultadoPS
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">inscricaoId / editalId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">notaFinal / classificacao</span><span class="field-type">Float / Int</span></div>
+      <div class="field"><span class="field-name field-enum">situacao</span><span class="field-type">SituacaoResultado</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ ConvocacaoPS[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ConvocacaoPS
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">resultadoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">chamada</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">prazoLimite</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusConvocacao</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(6,182,212,0.06);border:1px dashed rgba(6,182,212,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#67e8f9;margin-top:6px;">
+    <strong>TipoProcesso</strong>: VESTIBULAR · TRANSFERENCIA · SISU · PROUNI · REINGRESSO<br>
+    <strong>Fluxo</strong>: Edital → InscricaoPS → ResultadoPS → ConvocacaoPS → Matricula
+  </div>
+</div>
+
+<!-- PESSOAS -->
+<div class="domain pessoa">
+  <div class="domain-title">👤 Pessoas</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Pessoa
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId / usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoPessoa</span></div>
+      <div class="field"><span class="field-name">nome / sobrenome / nomeCompleto</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">cpf / rg</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">dataNascimento</span><span class="field-type">DateTime?</span></div>
+      <div class="field"><span class="field-name field-enum">sexo / estadoCivil</span><span class="field-type">Enum</span></div>
+      <div class="field"><span class="field-name">nacionalidade / naturalidade</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">email / telefone / celular</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">fotoUrl</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">Endereço completo</span><span class="field-type">cep, logradouro, bairro...</span></div>
+      <div class="field"><span class="field-name">ra / siape / titulacao / lattes</span><span class="field-type">String? (Docente)</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Emprestimo[]</span>
+      <span class="rel-tag">→ ReservaLivro[]</span>
+      <span class="rel-tag">→ Cobranca[]</span>
+    </div>
+  </div>
+
+  <div style="background:rgba(99,102,241,0.06);border:1px dashed rgba(99,102,241,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#a5b4fc;margin-top:6px;">
+    <strong>TipoPessoa</strong>: ALUNO · DOCENTE · RESPONSAVEL · FUNCIONARIO<br>
+    <strong>Sexo</strong>: MASCULINO · FEMININO · OUTRO · NAO_INFORMADO<br>
+    <strong>EstadoCivil</strong>: SOLTEIRO · CASADO · DIVORCIADO · VIUVO · UNIAO_ESTAVEL
+  </div>
+</div>
+
+<!-- TCC -->
+<div class="domain tcc">
+  <div class="domain-title">🎓 TCC</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      OrientacaoTCC
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name">tema / resumo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-fk">alunoId / orientadorId / coorientadorId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-fk">cursoId / organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusOrientacao</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ BancaTCC</span>
+      <span class="rel-tag">→ EntregaTCC[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      EntregaTCC
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">orientacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">versao / titulo</span><span class="field-type">Int / String</span></div>
+      <div class="field"><span class="field-name">arquivoUrl / comentario / feedback</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusEntregaTCC</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      BancaTCC
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">orientacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">dataDefesa / local / linkOnline</span><span class="field-type">DateTime / String?</span></div>
+      <div class="field"><span class="field-name">nota / ata</span><span class="field-type">Float? / String?</span></div>
+      <div class="field"><span class="field-name field-enum">resultado</span><span class="field-type">ResultadoDefesa</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ MembroBancaTCC[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      MembroBancaTCC
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">bancaId / professorId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">funcao</span><span class="field-type">FuncaoBanca</span></div>
+      <div class="field"><span class="field-name">nota / parecer</span><span class="field-type">Float? / String?</span></div>
+      <div class="field"><span class="field-name">confirmado</span><span class="field-type">Boolean</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(168,85,247,0.06);border:1px dashed rgba(168,85,247,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#d8b4fe;margin-top:6px;">
+    <strong>StatusOrientacao</strong>: SOLICITADA · ACEITA · RECUSADA · EM_ANDAMENTO · CONCLUIDA · CANCELADA<br>
+    <strong>ResultadoDefesa</strong>: APROVADO · APROVADO_COM_RESSALVAS · REPROVADO
+  </div>
+</div>
+
+<!-- ESTÁGIO -->
+<div class="domain est">
+  <div class="domain-title">💼 Estágio</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ConvenioEstagio
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name">empresa / cnpj</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">contatoNome / contatoEmail / contatoTelefone</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">dataInicio / dataFim</span><span class="field-type">DateTime?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusConvenio</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ VagaEstagio[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      VagaEstagio
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">convenioId / cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / descricao</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">cargaHoraria / bolsa / vagas</span><span class="field-type">Int / Float / Int</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ Estagio[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Estagio
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">vagaId / alunoId / supervisorId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">dataInicio / dataFim</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">cargaHorariaSemanal</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusEstagio</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ AcompanhamentoEstagio[]</span>
+      <span class="rel-tag">→ TermoEstagio[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      AcompanhamentoEstagio
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">estagioId / autorId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">tipo / titulo / conteudo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">nota / dataReferencia</span><span class="field-type">Float? / DateTime</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      TermoEstagio
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">estagioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoTermo</span></div>
+      <div class="field"><span class="field-name">conteudo / arquivoUrl</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">assinado / dataAssinatura</span><span class="field-type">Boolean / DateTime?</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(236,72,153,0.06);border:1px dashed rgba(236,72,153,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#f9a8d4;margin-top:6px;">
+    <strong>StatusEstagio</strong>: CANDIDATADO · APROVADO · EM_ANDAMENTO · CONCLUIDO · DESLIGADO · CANCELADO<br>
+    <strong>TipoTermo</strong>: COMPROMISSO · ADITIVO · RESCISAO
+  </div>
+</div>
+
+<!-- BIBLIOTECA -->
+<div class="domain bib">
+  <div class="domain-title">📖 Biblioteca</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Livro
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / subtitulo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">autor / isbn / editora</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">anoPublicacao / edicao</span><span class="field-type">Int</span></div>
+      <div class="field"><span class="field-name">genero / localizacaoFisica</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name">capaUrl / resumo</span><span class="field-type">String?</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ Exemplar[]</span>
+      <span class="rel-tag">→ ReservaLivro[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Exemplar
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">livroId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">codigoBarras</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusExemplar</span></div>
+      <div class="field"><span class="field-name">observacoes</span><span class="field-type">String?</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ Emprestimo[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Emprestimo
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">exemplarId / pessoaId / usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">dataEmprestimo / dataPrevistaDevolucao</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">dataDevolucao</span><span class="field-type">DateTime?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusEmprestimo</span></div>
+      <div class="field"><span class="field-name">multa</span><span class="field-type">Float?</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ReservaLivro
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">livroId / pessoaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">dataReserva / dataExpiracao</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">atendida / cancelada</span><span class="field-type">Boolean</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#fcd34d;margin-top:6px;">
+    <strong>StatusExemplar</strong>: DISPONIVEL · EMPRESTADO · RESERVADO · EXTRAVIADO · MANUTENCAO<br>
+    <strong>StatusEmprestimo</strong>: ATIVO · DEVOLVIDO · ATRASADO · EXTRAVIADO
+  </div>
+</div>
+
+<!-- PESQUISA -->
+<div class="domain pesq">
+  <div class="domain-title">🔬 Pesquisa Científica</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      GrupoPesquisa
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name">nome / sigla / descricao</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">linhaPesquisa / areaConhecimento</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-fk">coordenadorId</span><span class="field-type">UUID FK</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ MembroGrupoPesquisa[]</span>
+      <span class="rel-tag">→ ProjetoPesquisa[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ProjetoPesquisa
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">grupoId / coordenadorId / cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / resumo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">areaConhecimento / linhaPesquisa</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">orcamento / orgaoFinanciador</span><span class="field-type">Float? / String?</span></div>
+      <div class="field"><span class="field-name">palavrasChave</span><span class="field-type">String[]</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ IniciacaoCientifica[]</span>
+      <span class="rel-tag">→ BolsaPesquisa[]</span>
+      <span class="rel-tag">→ Publicacao[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      IniciacaoCientifica
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">alunoId / orientadorId / projetoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / plano</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">modalidade</span><span class="field-type">ModalidadeIC</span></div>
+      <div class="field"><span class="field-name">cargaHorariaSemanal</span><span class="field-type">Int</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ BolsaPesquisa[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Publicacao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name">titulo / autores[]</span><span class="field-type">String / String[]</span></div>
+      <div class="field"><span class="field-name field-fk">autorPrincipalId / projetoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoPublicacao</span></div>
+      <div class="field"><span class="field-name">veiculo / ano / doi / issnOuIsbn</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">qualisCapes</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(59,130,246,0.06);border:1px dashed rgba(59,130,246,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#93c5fd;margin-top:6px;">
+    <strong>ModalidadeIC</strong>: PIBIC · PIBITI · PIBIC_EM · PIVIC · VOLUNTARIO<br>
+    <strong>TipoPublicacao</strong>: ARTIGO_PERIODICO · ARTIGO_CONGRESSO · LIVRO · CAPITULO_LIVRO · PATENTE · OUTRO
+  </div>
+</div>
+
+<!-- EXTENSÃO -->
+<div class="domain ext">
+  <div class="domain-title">🌱 Extensão</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      ProjetoExtensao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">coordenadorId / cursoId / organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo / descricao</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">modalidade</span><span class="field-type">ModalidadeExtensao</span></div>
+      <div class="field"><span class="field-name field-enum">areaTematica</span><span class="field-type">AreaTematicaExtensao</span></div>
+      <div class="field"><span class="field-name">publicoAlvo / local</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">cargaHoraria / vagasOfertadas</span><span class="field-type">Int</span></div>
+    </div>
+    <div class="relations">
+      <span class="rel-tag">→ InscricaoExtensao[]</span>
+      <span class="rel-tag">→ RelatorioExtensao[]</span>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      InscricaoExtensao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">projetoId / usuarioId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">nomeCompleto / email / telefone</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusInscricaoExtensao</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ CertificadoExtensao</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      CertificadoExtensao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">inscricaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">codigoVerificacao</span><span class="field-type">String unique</span></div>
+      <div class="field"><span class="field-name">cargaHorariaConcluida / dataEmissao</span><span class="field-type">Int / DateTime</span></div>
+      <div class="field"><span class="field-name">urlPdf</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(20,184,166,0.06);border:1px dashed rgba(20,184,166,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#5eead4;margin-top:6px;">
+    <strong>ModalidadeExtensao</strong>: CURSO · EVENTO · PROGRAMA · PROJETO · PRESTACAO_SERVICO<br>
+    <strong>AreaTematicaExtensao</strong>: COMUNICACAO · CULTURA · EDUCACAO · SAUDE · TECNOLOGIA · TRABALHO...
+  </div>
+</div>
+
+<!-- FINANCEIRO -->
+<div class="domain fin">
+  <div class="domain-title">💰 Financeiro</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Cobranca
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">organizacaoId / pessoaId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">descricao</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">valorOriginal / valorDesconto / valorJuros / valorMulta / valorFinal / valorPago</span><span class="field-type">Float</span></div>
+      <div class="field"><span class="field-name">dataVencimento / dataPagamento</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusCobranca</span></div>
+      <div class="field"><span class="field-name field-enum">formaPagamento</span><span class="field-type">FormaPagamento</span></div>
+      <div class="field"><span class="field-name field-enum">origem</span><span class="field-type">OrigemReceita</span></div>
+      <div class="field"><span class="field-name">comprovanteUrl</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      FluxoCaixa
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoFluxo</span></div>
+      <div class="field"><span class="field-name field-enum">categoria</span><span class="field-type">CategoriaFluxo</span></div>
+      <div class="field"><span class="field-name">descricao / valor / data</span><span class="field-type">String / Float / DateTime</span></div>
+      <div class="field"><span class="field-name field-enum">formaPagamento</span><span class="field-type">FormaPagamento</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ Cobranca[]</span></div>
+  </div>
+
+  <div style="background:rgba(132,204,22,0.06);border:1px dashed rgba(132,204,22,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#bef264;margin-top:6px;">
+    <strong>StatusCobranca</strong>: PENDENTE · PAGO · ATRASADO · CANCELADO · PARCIAL<br>
+    <strong>FormaPagamento</strong>: DINHEIRO · CARTAO_CREDITO · CARTAO_DEBITO · BOLETO · PIX · TRANSFERENCIA<br>
+    <strong>TipoFluxo</strong>: ENTRADA · SAIDA
+  </div>
+</div>
+
+<!-- COORDENAÇÃO -->
+<div class="domain coord">
+  <div class="domain-title">🏫 Coordenação e NDE</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      AtaNDE
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">dataReuniao</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">pauta / decisoes</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name">arquivoUrl</span><span class="field-type">String?</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ MembroNDE[]</span></div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      PPC
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-fk">cursoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">versao / dataAprovacao</span><span class="field-type">String / DateTime</span></div>
+      <div class="field"><span class="field-name">vigente</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">arquivoUrl</span><span class="field-type">String</span></div>
+    </div>
+  </div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      Reuniao
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name">titulo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoReuniao</span></div>
+      <div class="field"><span class="field-name">data / horaInicio / horaFim</span><span class="field-type">DateTime / String</span></div>
+      <div class="field"><span class="field-name">local / pauta / ata</span><span class="field-type">String?</span></div>
+      <div class="field"><span class="field-name field-enum">status</span><span class="field-type">StatusReuniao</span></div>
+    </div>
+    <div class="relations"><span class="rel-tag">→ ReuniaoParticipante[]</span></div>
+  </div>
+
+  <div style="background:rgba(251,191,36,0.06);border:1px dashed rgba(251,191,36,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#fde68a;margin-top:6px;">
+    <strong>TipoReuniao</strong>: COLEGIADO · CONSELHO · SECRETARIA · DEPARTAMENTO · OUTRA<br>
+    <strong>StatusReuniao</strong>: AGENDADA · REALIZADA · CANCELADA
+  </div>
+</div>
+
+<!-- CALENDÁRIO -->
+<div class="domain cal">
+  <div class="domain-title">📅 Calendário Acadêmico</div>
+
+  <div class="entity">
+    <div class="entity-name" onclick="toggle(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      EventoAcademico
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-name field-pk">id</span><span class="field-type">UUID PK</span></div>
+      <div class="field"><span class="field-name field-fk">semestreLetivoId / organizacaoId</span><span class="field-type">UUID FK</span></div>
+      <div class="field"><span class="field-name">titulo</span><span class="field-type">String</span></div>
+      <div class="field"><span class="field-name field-enum">tipo</span><span class="field-type">TipoEvento</span></div>
+      <div class="field"><span class="field-name">dataInicio / dataFim</span><span class="field-type">DateTime</span></div>
+      <div class="field"><span class="field-name">todoDia</span><span class="field-type">Boolean</span></div>
+      <div class="field"><span class="field-name">cor / descricao</span><span class="field-type">String?</span></div>
+    </div>
+  </div>
+
+  <div style="background:rgba(156,163,175,0.06);border:1px dashed rgba(156,163,175,0.3);border-radius:8px;padding:8px 10px;font-size:0.68rem;color:#e5e7eb;margin-top:6px;">
+    <strong>TipoEvento</strong>: INICIO_AULAS · FIM_AULAS · PROVA · RECESSO · FERIADO · FORMATURA · CONSELHO_CLASSE · MATRICULA · REMATRICULA · OUTRO
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<div style="text-align:center;margin-top:32px;padding:16px;color:#475569;font-size:0.75rem;border-top:1px solid rgba(255,255,255,0.06);">
+  NURA · Sistema de Gestão Educacional · Clique em qualquer entidade para expandir os campos
+</div>
+
+<script>
+function toggle(el) {
+  el.classList.toggle('open');
+  const fields = el.parentElement.querySelector('.fields');
+  if (fields) fields.classList.toggle('visible');
+}
+</script>
+</body>
+</html>
